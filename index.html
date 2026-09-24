@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PocketSmart AI</title>
+<style>
+body{font-family:Arial,sans-serif;margin:0;background:#f4f7fb;color:#172033}
+header{background:#2637d9;color:white;padding:24px}
+main{max-width:900px;margin:25px auto;padding:0 16px}
+.card{background:white;border-radius:16px;padding:20px;margin-bottom:18px;box-shadow:0 4px 16px #00000012}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+input,select,button{width:100%;box-sizing:border-box;padding:12px;border-radius:9px;border:1px solid #ccd3e0;margin-top:6px}
+button{background:#2637d9;color:white;border:0;font-weight:bold;cursor:pointer}
+.expense{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:end;margin:8px 0}
+.remove{background:#e74c3c;width:auto}
+.metric{font-size:25px;font-weight:bold}
+.small{color:#667085}
+ul{line-height:1.8}
+@media(max-width:650px){.expense{grid-template-columns:1fr 1fr}.expense .remove{grid-column:span 2}}
+</style>
+</head>
+<body>
+<header><h1>💰 PocketSmart AI</h1><p>Smart Budget & Recommendation Assistant</p></header>
+<main>
+<div class="card">
+<h2>Monthly Budget</h2>
+<label>Monthly Income</label>
+<input id="income" type="number" min="0" placeholder="e.g. 25000">
+<h3>Expenses</h3>
+<div id="expenses"></div>
+<button onclick="addExpense()">+ Add Expense</button>
+</div>
+<div class="card"><button onclick="analyze()">Analyze My Budget</button></div>
+<div class="card" id="result" style="display:none">
+<h2>Budget Summary</h2>
+<div class="grid">
+<div><span class="small">Income</span><div class="metric" id="rIncome">₹0</div></div>
+<div><span class="small">Expenses</span><div class="metric" id="rExpense">₹0</div></div>
+<div><span class="small">Balance</span><div class="metric" id="rBalance">₹0</div></div>
+</div>
+<h3>Category Spending</h3><ul id="cats"></ul>
+<h3>Recommendations</h3><ul id="recs"></ul>
+<h3>Gemini AI Recommendation</h3><p id="ai">Click Analyze My Budget to generate advice.</p>
+</div>
+</main>
+<script>
+function addExpense(name="",amount="",category="Food"){
+ const row=document.createElement("div"); row.className="expense";
+ row.innerHTML=`<div><label>Name</label><input class="ename" value="${name}" placeholder="Food"></div>
+ <div><label>Amount</label><input class="eamount" type="number" value="${amount}" placeholder="0"></div>
+ <div><label>Category</label><select class="ecat">
+ ${["Food","Travel","Education","Shopping","Bills","Entertainment","Health","Other"].map(x=>`<option ${x===category?"selected":""}>${x}</option>`).join("")}
+ </select></div><button class="remove" onclick="this.parentElement.remove()">Remove</button>`;
+ document.getElementById("expenses").appendChild(row);
+}
+addExpense("Food",3000,"Food"); addExpense("Travel",1500,"Travel");
+
+async function analyze(){
+ const expenses=[...document.querySelectorAll(".expense")].map(r=>({
+   name:r.querySelector(".ename").value,
+   amount:Number(r.querySelector(".eamount").value||0),
+   category:r.querySelector(".ecat").value
+ }));
+ const income=Number(document.getElementById("income").value||0);
+ const payload={income,expenses};
+ const summary=await fetch("/api/budget",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).then(r=>r.json());
+ const ai=await fetch("/api/ai-recommendation",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).then(r=>r.json());
+ document.getElementById("result").style.display="block";
+ document.getElementById("rIncome").textContent="₹"+summary.income.toFixed(2);
+ document.getElementById("rExpense").textContent="₹"+summary.total_expenses.toFixed(2);
+ document.getElementById("rBalance").textContent="₹"+summary.balance.toFixed(2);
+ document.getElementById("cats").innerHTML=Object.entries(summary.categories).map(([k,v])=>`<li>${k}: ₹${v.toFixed(2)}</li>`).join("");
+ document.getElementById("recs").innerHTML=summary.recommendations.map(x=>`<li>${x}</li>`).join("");
+ document.getElementById("ai").textContent=ai.recommendation;
+}
+</script>
+</body>
+</html>
