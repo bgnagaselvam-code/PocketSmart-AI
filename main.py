@@ -71,18 +71,42 @@ def budget(data: BudgetRequest):
 @app.post("/api/ai-recommendation")
 def ai_recommendation(data: BudgetRequest):
     api_key = os.getenv("GEMINI_API_KEY")
+
     if not api_key:
-        return {"recommendation": "Gemini API key is not configured. Review your highest expense category and keep part of your balance for savings."}
+        return {
+            "recommendation": "Gemini API key is not configured."
+        }
 
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        prompt = f"""You are PocketSmart AI, a personal budgeting assistant.
-Monthly income: {data.income}
-Expenses: {[e.model_dump() for e in data.expenses]}
-Give 3 short, practical budgeting suggestions. Do not recommend financial products or investments."""
-        response = model.generate_content(prompt)
-        return {"recommendation": response.text}
-    except Exception:
-        return {"recommendation": "AI service is temporarily unavailable. Use the local budget summary and review your largest spending category."}
+        from google import genai
+
+        client = genai.Client(api_key=api_key)
+
+        prompt = f"""
+You are PocketSmart AI, a personal budgeting assistant.
+
+Monthly income: ₹{data.income}
+
+Expenses:
+{[e.model_dump() for e in data.expenses]}
+
+Give 3 short, practical budgeting suggestions.
+Do not recommend financial products or investments.
+Keep the answer simple and useful.
+"""
+
+        response = client.models.generate_content(
+            model="gemini-3.8-flash",
+            contents=prompt
+        )
+
+        return {
+            "recommendation": response.text
+        }
+
+    except Exception as e:
+        print(f"Gemini API error: {e}")
+
+        return {
+            "recommendation": "Gemini AI is temporarily unavailable. Please try again."
+        }
