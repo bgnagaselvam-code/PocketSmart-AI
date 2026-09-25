@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 app = FastAPI(title="PocketSmart AI")
 
@@ -26,7 +27,8 @@ class BudgetRequest(BaseModel):
 
 @app.get("/")
 def home():
-    return FileResponse("frontend/index.html")
+    return 
+    FileResponse(os.path.join(BASE_DIR, "index.html"))
 
 @app.get("/health")
 def health():
