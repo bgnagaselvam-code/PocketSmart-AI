@@ -41,7 +41,10 @@ ul{line-height:1.8}
 </div>
 <h3>Category Spending</h3><ul id="cats"></ul>
 <h3>Recommendations</h3><ul id="recs"></ul>
-<h3>Gemini AI Recommendation</h3><p id="ai">Click Analyze My Budget to generate advice.</p>
+<h3>Gemini AI Recommendation</h3>
+<ul id="ai">
+    <li>Click Analyze My Budget to generate advice.</li>
+</ul>
 </div>
 </main>
 <script>
@@ -55,6 +58,25 @@ function addExpense(name="",amount="",category="Food"){
  document.getElementById("expenses").appendChild(row);
 }
 addExpense("Food",3000,"Food"); addExpense("Travel",1500,"Travel");
+ function escapeHTML(text) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function displayAIRecommendation(text) {
+    const aiBox = document.getElementById("ai");
+
+    const suggestions = text
+        .split(/(?=\d+\.\s)/)
+        .map(x => x.trim())
+        .filter(x => x.length > 0);
+
+    aiBox.innerHTML = suggestions.map((x, index) => {
+        const cleanText = x.replace(/^\d+\.\s*/, "");
+        return `<li><strong>${index + 1}.</strong> ${escapeHTML(cleanText)}</li>`;
+    }).join("");
+}
 
 async function analyze(){
  const expenses=[...document.querySelectorAll(".expense")].map(r=>({
@@ -72,7 +94,7 @@ async function analyze(){
  document.getElementById("rBalance").textContent="₹"+summary.balance.toFixed(2);
  document.getElementById("cats").innerHTML=Object.entries(summary.categories).map(([k,v])=>`<li>${k}: ₹${v.toFixed(2)}</li>`).join("");
  document.getElementById("recs").innerHTML=summary.recommendations.map(x=>`<li>${x}</li>`).join("");
- document.getElementById("ai").textContent=ai.recommendation;
+ displayAIRecommendation(ai.recommendation);
 }
 </script>
 </body>
