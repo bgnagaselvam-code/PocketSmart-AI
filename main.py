@@ -171,8 +171,6 @@ Rules:
         # the next model will be tried.
 
         models = [
-            "gemini-3.7-flash",
-            "gemini-3.6-flash",
             "gemini-3.5-flash-lite"
         ]
 
