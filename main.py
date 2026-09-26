@@ -90,9 +90,15 @@ Monthly income: ₹{data.income}
 Expenses:
 {[e.model_dump() for e in data.expenses]}
 
-Give 3 short, practical budgeting suggestions.
-Do not recommend financial products or investments.
-Keep the answer simple and useful.
+Give exactly 3 short, practical budgeting suggestions.
+
+IMPORTANT:
+- Do not use Markdown.
+- Do not use ** symbols.
+- Do not use bullet points.
+- Number the suggestions as 1., 2., and 3.
+- Keep each suggestion simple and easy to read.
+- Do not recommend financial products or investments.
 """
 
         response = client.models.generate_content(
@@ -101,7 +107,7 @@ Keep the answer simple and useful.
         )
 
         return {
-            "recommendation": response.text
+            "recommendation": response.text.strip()
         }
 
     except Exception as e:
