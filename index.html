@@ -67,14 +67,22 @@ addExpense("Food",3000,"Food"); addExpense("Travel",1500,"Travel");
 function displayAIRecommendation(text) {
     const aiBox = document.getElementById("ai");
 
+    // Only recognize recommendation numbers: 1., 2., 3.
     const suggestions = text
-        .split(/(?=\d+\.\s)/)
+        .replace(/\r/g, "")
+        .split(/\s+(?=(?:1|2|3)\.\s)/)
         .map(x => x.trim())
         .filter(x => x.length > 0);
 
     aiBox.innerHTML = suggestions.map((x, index) => {
-        const cleanText = x.replace(/^\d+\.\s*/, "");
-        return `<li><strong>${index + 1}.</strong> ${escapeHTML(cleanText)}</li>`;
+        const cleanText = x.replace(/^(?:1|2|3)\.\s*/, "");
+
+        return `
+            <li>
+                <strong>${index + 1}.</strong>
+                ${escapeHTML(cleanText)}
+            </li>
+        `;
     }).join("");
 }
 
