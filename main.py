@@ -92,6 +92,16 @@ Expenses:
 
 Give exactly 3 short, practical budgeting suggestions.
 
+Format the response exactly like this:
+1. First suggestion
+2. Second suggestion
+3. Third suggestion
+
+Put each suggestion on a separate line.
+Do not use bullet points.
+Do not use Markdown.
+Do not put numbers with periods inside the suggestions unless necessary.
+
 IMPORTANT:
 - Do not use Markdown.
 - Do not use ** symbols.
