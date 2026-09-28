@@ -67,15 +67,21 @@ addExpense("Food",3000,"Food"); addExpense("Travel",1500,"Travel");
 function displayAIRecommendation(text) {
     const aiBox = document.getElementById("ai");
 
-    // Only recognize recommendation numbers: 1., 2., 3.
+    if (!text || typeof text !== "string") {
+        aiBox.innerHTML = "<li>No Gemini recommendation was returned.</li>";
+        return;
+    }
+
     const suggestions = text
         .replace(/\r/g, "")
-        .split(/\s+(?=(?:1|2|3)\.\s)/)
+        .split(/\n(?=\s*(?:[-•]|\d+\.)\s*)/)
         .map(x => x.trim())
         .filter(x => x.length > 0);
 
     aiBox.innerHTML = suggestions.map((x, index) => {
-        const cleanText = x.replace(/^(?:1|2|3)\.\s*/, "");
+        const cleanText = x
+            .replace(/^(?:[-•]|\d+\.)\s*/, "")
+            .trim();
 
         return `
             <li>
@@ -86,23 +92,114 @@ function displayAIRecommendation(text) {
     }).join("");
 }
 
-async function analyze(){
- const expenses=[...document.querySelectorAll(".expense")].map(r=>({
-   name:r.querySelector(".ename").value,
-   amount:Number(r.querySelector(".eamount").value||0),
-   category:r.querySelector(".ecat").value
- }));
- const income=Number(document.getElementById("income").value||0);
- const payload={income,expenses};
- const summary=await fetch("/api/budget",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).then(r=>r.json());
- const ai=await fetch("/api/ai-recommendation",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).then(r=>r.json());
- document.getElementById("result").style.display="block";
- document.getElementById("rIncome").textContent="₹"+summary.income.toFixed(2);
- document.getElementById("rExpense").textContent="₹"+summary.total_expenses.toFixed(2);
- document.getElementById("rBalance").textContent="₹"+summary.balance.toFixed(2);
- document.getElementById("cats").innerHTML=Object.entries(summary.categories).map(([k,v])=>`<li>${k}: ₹${v.toFixed(2)}</li>`).join("");
- document.getElementById("recs").innerHTML=summary.recommendations.map(x=>`<li>${x}</li>`).join("");
- displayAIRecommendation(ai.recommendation);
+async function analyze() {
+    const expenses = [...document.querySelectorAll(".expense")].map(r => ({
+        name: r.querySelector(".ename").value,
+        amount: Number(r.querySelector(".eamount").value || 0),
+        category: r.querySelector(".ecat").value
+    }));
+
+    const income = Number(document.getElementById("income").value || 0);
+
+    const payload = {
+        income: income,
+        expenses: expenses
+    };
+
+    const aiBox = document.getElementById("ai");
+
+    // Show loading message
+    aiBox.innerHTML = "<li>Generating Gemini AI recommendation...</li>";
+
+    try {
+        // -----------------------------
+        // 1. Get normal budget summary
+        // -----------------------------
+        const budgetResponse = await fetch("/api/budget", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const summary = await budgetResponse.json();
+
+        if (!budgetResponse.ok) {
+            throw new Error(
+                summary.error || "Budget analysis failed."
+            );
+        }
+
+        // -----------------------------
+        // 2. Get Gemini recommendation
+        // -----------------------------
+        const aiResponse = await fetch("/api/ai-recommendation", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const ai = await aiResponse.json();
+
+        console.log("Gemini API response:", ai);
+
+        if (!aiResponse.ok) {
+            throw new Error(
+                ai.error || "Gemini API request failed."
+            );
+        }
+
+        if (!ai.recommendation) {
+            throw new Error(
+                "Gemini response did not contain a recommendation."
+            );
+        }
+
+        // -----------------------------
+        // 3. Display budget summary
+        // -----------------------------
+        document.getElementById("result").style.display = "block";
+
+        document.getElementById("rIncome").textContent =
+            "₹" + Number(summary.income).toFixed(2);
+
+        document.getElementById("rExpense").textContent =
+            "₹" + Number(summary.total_expenses).toFixed(2);
+
+        document.getElementById("rBalance").textContent =
+            "₹" + Number(summary.balance).toFixed(2);
+
+        document.getElementById("cats").innerHTML =
+            Object.entries(summary.categories)
+                .map(([k, v]) =>
+                    `<li>${escapeHTML(k)}: ₹${Number(v).toFixed(2)}</li>`
+                )
+                .join("");
+
+        document.getElementById("recs").innerHTML =
+            summary.recommendations
+                .map(x => `<li>${escapeHTML(x)}</li>`)
+                .join("");
+
+        // -----------------------------
+        // 4. Display Gemini response
+        // -----------------------------
+        displayAIRecommendation(ai.recommendation);
+
+    } catch (error) {
+
+        console.error("PocketSmart AI error:", error);
+
+        aiBox.innerHTML = `
+            <li>
+                <strong>Gemini AI error:</strong>
+                ${escapeHTML(error.message)}
+            </li>
+        `;
+    }
 }
 </script>
 </body>
